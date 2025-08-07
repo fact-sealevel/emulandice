@@ -1,1 +1,0 @@
-../shared/emulandice_steer.sh
