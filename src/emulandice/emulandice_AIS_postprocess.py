@@ -1,6 +1,5 @@
 import numpy as np
 import os
-import pickle
 import time
 import argparse
 from emulandice.read_locationfile import ReadLocationFile
@@ -14,27 +13,23 @@ import dask.array as da
 """
 
 
-def emulandice_postprocess_AIS(locationfilename, chunksize, pipeline_id):
-    # Read in the projection data
-    projfile = "{}_projections.pkl".format(pipeline_id)
-    try:
-        f = open(projfile, "rb")
-    except Exception:
-        print("Cannot open projfile\n")
-        raise
-
-    # Extract the data from the file
-    my_data = pickle.load(f)
+def emulandice_postprocess_AIS(
+    my_data: dict,
+    locationfile,
+    chunksize,
+    pipeline_id,
+    output_lslr_file: str,
+    output_eais_file: str | None = None,
+    output_wais_file: str | None = None,
+):
     waissamps = my_data["waissamps"]
     eaissamps = my_data["eaissamps"]
     targyears = my_data["targyears"]
     scenario = my_data["scenario"]
     baseyear = my_data["baseyear"]
     preprocess_infile = my_data["preprocess_infile"]
-    f.close()
 
     # Load the site locations
-    locationfile = os.path.join(os.path.dirname(__file__), locationfilename)
     (_, site_ids, site_lats, site_lons) = ReadLocationFile(locationfile)
 
     # Get some dimension data from the loaded data structures
@@ -91,45 +86,9 @@ def emulandice_postprocess_AIS(locationfilename, chunksize, pipeline_id):
         attrs=ncvar_attributes,
     )
 
-    wais_out = xr.Dataset(
-        {
-            "sea_level_change": (
-                ("samples", "years", "locations"),
-                waissl,
-                {"units": "mm", "missing_value": nc_missing_value},
-            ),
-            "lat": (("locations"), site_lats),
-            "lon": (("locations"), site_lons),
-        },
-        coords={
-            "years": targyears,
-            "locations": site_ids,
-            "samples": np.arange(nsamps),
-        },
-        attrs=ncvar_attributes,
-    )
-
-    eais_out = xr.Dataset(
-        {
-            "sea_level_change": (
-                ("samples", "years", "locations"),
-                eaissl,
-                {"units": "mm", "missing_value": nc_missing_value},
-            ),
-            "lat": (("locations"), site_lats),
-            "lon": (("locations"), site_lons),
-        },
-        coords={
-            "years": targyears,
-            "locations": site_ids,
-            "samples": np.arange(nsamps),
-        },
-        attrs=ncvar_attributes,
-    )
-
     # Write the netcdf output files
     ais_out.to_netcdf(
-        "{0}_localsl.nc".format(pipeline_id),
+        output_lslr_file,
         encoding={
             "sea_level_change": {
                 "dtype": "f4",
@@ -139,28 +98,66 @@ def emulandice_postprocess_AIS(locationfilename, chunksize, pipeline_id):
             }
         },
     )
-    wais_out.to_netcdf(
-        "{0}_{1}_localsl.nc".format(pipeline_id, "WAIS"),
-        encoding={
-            "sea_level_change": {
-                "dtype": "f4",
-                "zlib": True,
-                "complevel": 4,
-                "_FillValue": nc_missing_value,
-            }
-        },
-    )
-    eais_out.to_netcdf(
-        "{0}_{1}_localsl.nc".format(pipeline_id, "EAIS"),
-        encoding={
-            "sea_level_change": {
-                "dtype": "f4",
-                "zlib": True,
-                "complevel": 4,
-                "_FillValue": nc_missing_value,
-            }
-        },
-    )
+
+    if output_wais_file is not None:
+        wais_out = xr.Dataset(
+            {
+                "sea_level_change": (
+                    ("samples", "years", "locations"),
+                    waissl,
+                    {"units": "mm", "missing_value": nc_missing_value},
+                ),
+                "lat": (("locations"), site_lats),
+                "lon": (("locations"), site_lons),
+            },
+            coords={
+                "years": targyears,
+                "locations": site_ids,
+                "samples": np.arange(nsamps),
+            },
+            attrs=ncvar_attributes,
+        )
+        wais_out.to_netcdf(
+            output_wais_file,
+            encoding={
+                "sea_level_change": {
+                    "dtype": "f4",
+                    "zlib": True,
+                    "complevel": 4,
+                    "_FillValue": nc_missing_value,
+                }
+            },
+        )
+
+    if output_eais_file is not None:
+        eais_out = xr.Dataset(
+            {
+                "sea_level_change": (
+                    ("samples", "years", "locations"),
+                    eaissl,
+                    {"units": "mm", "missing_value": nc_missing_value},
+                ),
+                "lat": (("locations"), site_lats),
+                "lon": (("locations"), site_lons),
+            },
+            coords={
+                "years": targyears,
+                "locations": site_ids,
+                "samples": np.arange(nsamps),
+            },
+            attrs=ncvar_attributes,
+        )
+        eais_out.to_netcdf(
+            "{0}_{1}_localsl.nc".format(pipeline_id, "EAIS"),
+            encoding={
+                "sea_level_change": {
+                    "dtype": "f4",
+                    "zlib": True,
+                    "complevel": 4,
+                    "_FillValue": nc_missing_value,
+                }
+            },
+        )
 
     return None
 

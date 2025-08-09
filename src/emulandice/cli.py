@@ -39,6 +39,20 @@ def main():
     required=True,
 )
 @click.option(
+    "--output-gslr-file",
+    envvar="EMULANDICE_OUTPUT_GSLR_FILE",
+    help="Path to write output global SLR file.",
+    required=True,
+    type=str,
+)
+@click.option(
+    "--output-lslr-file",
+    envvar="EMULANDICE_OUTPUT_LSLR_FILE",
+    help="Path to write output local SLR file.",
+    required=True,
+    type=str,
+)
+@click.option(
     "--baseyear",
     envvar="EMULANDICE_BASEYEAR",
     help="Base year to which projections should be referenced.",
@@ -57,15 +71,79 @@ def main():
     type=str,
     required=True,
 )
-def ais(input_data_file, pipeline_id, baseyear, chunksize, location_file):
+@click.option(
+    "--output-gslr-eais-file",
+    envvar="EMULANDICE_OUTPUT_GSLR_EAIS_FILE",
+    help="Path to write output global SLR EAIS file.",
+    type=str,
+    default=None,
+)
+@click.option(
+    "--output-gslr-wais-file",
+    envvar="EMULANDICE_OUTPUT_GSLR_WAIS_FILE",
+    help="Path to write output global SLR WAIS file.",
+    type=str,
+    default=None,
+)
+@click.option(
+    "--output-gslr-pen-file",
+    envvar="EMULANDICE_OUTPUT_GSLR_PEN_FILE",
+    help="Path to write output global SLR PEN file.",
+    type=str,
+    default=None,
+)
+@click.option(
+    "--output-lslr-eais-file",
+    envvar="EMULANDICE_OUTPUT_LSLR_EAIS_FILE",
+    help="Path to write output local SLR EAIS file.",
+    type=str,
+    default=None,
+)
+@click.option(
+    "--output-lslr-wais-file",
+    envvar="EMULANDICE_OUTPUT_LSLR_WAIS_FILE",
+    help="Path to write output local SLR WAIS file.",
+    type=str,
+    default=None,
+)
+def ais(
+    input_data_file,
+    pipeline_id,
+    output_gslr_file,
+    output_lslr_file,
+    baseyear,
+    chunksize,
+    location_file,
+    output_gslr_eais_file,
+    output_gslr_wais_file,
+    output_gslr_pen_file,
+    output_lslr_eais_file,
+    output_lslr_wais_file,
+):
     """
     Project sealevel rise from Antarctic Ice Sheet (AIS)
     """
     click.echo("Hello from emulandice AIS")
-    emulandice_preprocess(input_data_file, baseyear, pipeline_id)
-    emulandice_fit_AIS(pipeline_id)
-    emulandice_project_AIS(pipeline_id)
-    emulandice_postprocess_AIS(location_file, chunksize, pipeline_id)
+    preprocessed = emulandice_preprocess(input_data_file, baseyear, pipeline_id)
+    fitted = emulandice_fit_AIS(pipeline_id)
+    projected = emulandice_project_AIS(
+        pipeline_id,
+        preprocess_data=preprocessed,
+        fit_data=fitted,
+        output_gslr_file=output_gslr_file,
+        output_eais_file=output_gslr_eais_file,
+        output_wais_file=output_gslr_wais_file,
+        output_pen_file=output_gslr_pen_file,
+    )
+    emulandice_postprocess_AIS(
+        my_data=projected,
+        locationfile=location_file,
+        chunksize=chunksize,
+        pipeline_id=pipeline_id,
+        output_lslr_file=output_lslr_file,
+        output_eais_file=output_lslr_eais_file,
+        output_wais_file=output_lslr_wais_file,
+    )
 
 
 @main.command
@@ -106,7 +184,8 @@ def gris(input_data_file, pipeline_id, baseyear, chunksize, location_file):
     Project sealevel rise from Greenland Ice Sheet (GrIS)
     """
     click.echo("Hello from emulandice GrIS")
-    emulandice_preprocess(input_data_file, baseyear, pipeline_id)
+
+    preprocessed = emulandice_preprocess(input_data_file, baseyear, pipeline_id)
     emulandice_fit_GrIS(pipeline_id)
     emulandice_project_GrIS(pipeline_id)
     emulandice_postprocess_GrIS(location_file, chunksize, pipeline_id)
@@ -150,7 +229,8 @@ def glaciers(input_data_file, pipeline_id, baseyear, chunksize, location_file):
     Project sealevel rise from glaciers
     """
     click.echo("Hello from emulandice glaciers")
-    emulandice_preprocess(input_data_file, baseyear, pipeline_id)
+
+    preprocessed = emulandice_preprocess(input_data_file, baseyear, pipeline_id)
     emulandice_fit_glaciers(pipeline_id)
     emulandice_project_glaciers(pipeline_id)
     emulandice_postprocess_glaciers(location_file, chunksize, pipeline_id)

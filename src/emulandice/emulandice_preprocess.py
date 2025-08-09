@@ -3,7 +3,6 @@ import os
 import sys
 import fnmatch
 import argparse
-import pickle
 import shutil
 from netCDF4 import Dataset
 
@@ -51,7 +50,7 @@ def WriteToCSV(outfile, samples, mode="w"):
     return None
 
 
-def emulandice_preprocess(infile, baseyear, pipeline_id):
+def emulandice_preprocess(infile, baseyear, pipeline_id) -> dict:
     # If no input file was passed, look for one produced by a pre-projection workflow
     if infile is None:
         indir = os.path.dirname(__file__)
@@ -85,17 +84,7 @@ def emulandice_preprocess(infile, baseyear, pipeline_id):
         "facts_data_file": outfile,
         "nsamps": nsamps,
     }
-    outfile = open(
-        os.path.join(
-            os.path.dirname(__file__), "{}_preprocess.pkl".format(pipeline_id)
-        ),
-        "wb",
-    )
-    pickle.dump(output, outfile, protocol=-1)
-    outfile.close()
-
-    # Done
-    return None
+    return output
 
 
 if __name__ == "__main__":

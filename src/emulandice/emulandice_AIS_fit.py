@@ -1,10 +1,8 @@
-import os
 import sys
-import pickle
 import argparse
 
 
-def emulandice_fit_AIS(pipeline_id):
+def emulandice_fit_AIS(pipeline_id) -> dict:
     # Define the linear trend terms to be added to the samples
     trend_mean = {"EAIS": 0.09, "WAIS": 0.18, "PEN": 0.06}
     trend_sd = {"EAIS": 0.04, "WAIS": 0.09, "PEN": 0.03}
@@ -12,15 +10,7 @@ def emulandice_fit_AIS(pipeline_id):
     # Populate the output dictionary
     outdata = {"trend_mean": trend_mean, "trend_sd": trend_sd}
 
-    # Define the data directory
-    outdir = os.path.dirname(__file__)
-
-    # Write the rates data to a pickle file
-    outfile = open(os.path.join(outdir, "{}_fit.pkl".format(pipeline_id)), "wb")
-    pickle.dump(outdata, outfile)
-    outfile.close()
-
-    return None
+    return outdata
 
 
 if __name__ == "__main__":

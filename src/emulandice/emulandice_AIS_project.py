@@ -3,9 +3,9 @@ import os
 import sys
 import argparse
 import re
-import pickle
 import time
 import subprocess
+import shlex
 from netCDF4 import Dataset
 from scipy.stats import truncnorm
 
@@ -78,21 +78,43 @@ def ExtractProjections(emulandice_file):
     return (wais_data, eais_data, pen_data, targyears)
 
 
-def emulandice_project_AIS(pipeline_id, icesource="AIS"):
-    # Load the preprocessed data
-    preprocess_file = "{}_preprocess.pkl".format(pipeline_id)
-    with open(preprocess_file, "rb") as f:
-        preprocess_data = pickle.load(f)
+def _run_emulandice(*, emulandice_dataset: str, nsamps: int | str, icesource: str) -> None:
+    """
+    Runs emulandice as a subprocess via R. Requires `emulandice` to be installed and available to R. R must be available in PATH.
 
+    This only runs on POSIX systems.
+    """
+    # Safety to ensure nsamps can be interpreted as int.
+    nsamps = str(int(nsamps))
+
+    # Sanitize user inputs. NOTE this is only for POSIX systems.
+    emulandice_dataset = shlex.quote(emulandice_dataset)
+    nsamps = shlex.quote(nsamps)
+    icesource = shlex.quote(icesource)
+
+    # TODO: Stopped here. Original emulandice library in R doesn't allow this. Needs emulandice fork from facts repo, but unclear what changes are. Do new fork?
+    r_cmd = f"emulandice::main('decades', dataset='{emulandice_dataset}', N_FACTS={nsamps}, ice_sources=c('{icesource}'))"
+    
+    subprocess.run(
+        ["R", "-e", r_cmd],
+        shell=False,
+    )
+
+
+def emulandice_project_AIS(
+    pipeline_id: str,
+    preprocess_data: dict,
+    fit_data: dict,
+    output_gslr_file: str,
+    output_eais_file: str | None = None,
+    output_wais_file: str | None = None,
+    output_pen_file: str | None = None,
+    icesource: str = "AIS",
+) -> dict:
     preprocess_infile = preprocess_data["infile"]
     baseyear = preprocess_data["baseyear"]
     scenario = preprocess_data["scenario"]
     nsamps = preprocess_data["nsamps"]
-
-    # Load the fit data
-    fit_file = "{}_fit.pkl".format(pipeline_id)
-    with open(fit_file, "rb") as f:
-        fit_data = pickle.load(f)
 
     trend_mean = fit_data["trend_mean"]
     trend_sd = fit_data["trend_sd"]
@@ -100,9 +122,7 @@ def emulandice_project_AIS(pipeline_id, icesource="AIS"):
     # Run the module using the FACTS forcing data
 
     emulandice_dataset = "FACTS_CLIMATE_FORCING.csv"
-    subprocess.run(
-        ["bash", "emulandice_steer.sh", emulandice_dataset, str(nsamps), icesource]
-    )
+    _run_emulandice(emulandice_dataset=emulandice_dataset, nsamps=nsamps, icesource=icesource)
 
     # Get the output from the emulandice run
     emulandice_file = os.path.join(
@@ -159,53 +179,68 @@ def emulandice_project_AIS(pipeline_id, icesource="AIS"):
         "baseyear": baseyear,
         "preprocess_infile": preprocess_infile,
     }
-    outfile = open(
-        os.path.join(
-            os.path.dirname(__file__), "{}_projections.pkl".format(pipeline_id)
-        ),
-        "wb",
-    )
-    pickle.dump(output, outfile)
-    outfile.close()
 
     # Write the global projections to netcdf files
     WriteNetCDF(
         eais_samples + wais_samples + pen_samples,
-        None,
         targyears,
         baseyear,
         scenario,
         nsamps,
         pipeline_id,
-    )
-    WriteNetCDF(
-        eais_samples, "EAIS", targyears, baseyear, scenario, nsamps, pipeline_id
-    )
-    WriteNetCDF(pen_samples, "PEN", targyears, baseyear, scenario, nsamps, pipeline_id)
-    WriteNetCDF(
-        wais_samples, "WAIS", targyears, baseyear, scenario, nsamps, pipeline_id
+        nc_filename=output_gslr_file,
+        nc_description="Global SLR contribution from Antarctica using the emulandice module",
     )
 
-    # Done
-    return None
+    if output_eais_file is not None:
+        WriteNetCDF(
+            eais_samples,
+            targyears,
+            baseyear,
+            scenario,
+            nsamps,
+            pipeline_id,
+            nc_filename=output_eais_file,
+            nc_description="Global SLR contribution from Antarctica (EAIS) using the emulandice module",
+        )
+
+    if output_wais_file is not None:
+        WriteNetCDF(
+            wais_samples,
+            targyears,
+            baseyear,
+            scenario,
+            nsamps,
+            pipeline_id,
+            nc_filename=output_wais_file,
+            nc_description="Global SLR contribution from Antarctica (WAIS) using the emulandice module",
+        )
+
+    if output_pen_file is not None:
+        WriteNetCDF(
+            pen_samples,
+            targyears,
+            baseyear,
+            scenario,
+            nsamps,
+            pipeline_id,
+            nc_filename=output_pen_file,
+            nc_description="Global SLR contribution from Antarctica (PEN) using the emulandice module",
+        )
+
+    return output
 
 
-def WriteNetCDF(slr, region, targyears, baseyear, scenario, nsamps, pipeline_id):
-    # Write the total global projections to a netcdf file
-    if region is None:
-        nc_filename = os.path.join(
-            os.path.dirname(__file__), "{}_globalsl.nc".format(pipeline_id)
-        )
-        nc_description = (
-            "Global SLR contribution from Antarctica using the emulandice module"
-        )
-    else:
-        nc_filename = os.path.join(
-            os.path.dirname(__file__), "{}_{}_globalsl.nc".format(pipeline_id, region)
-        )
-        nc_description = "Global SLR contribution from Antarctica ({}) using the emulandice module".format(
-            region
-        )
+def WriteNetCDF(
+    slr,
+    targyears,
+    baseyear,
+    scenario,
+    nsamps,
+    pipeline_id,
+    nc_filename: str,
+    nc_description: str,
+):
     rootgrp = Dataset(nc_filename, "w", format="NETCDF4")
 
     # Define Dimensions
