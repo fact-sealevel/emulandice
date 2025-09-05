@@ -35,4 +35,8 @@ coverage.xml
 .dockerignore
 Dockerfile
 .env
+
 data
+
+renv
+.Rprofile

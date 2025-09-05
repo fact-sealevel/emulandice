@@ -50,7 +50,7 @@ def WriteToCSV(outfile, samples, mode="w"):
     return None
 
 
-def emulandice_preprocess(infile, baseyear, pipeline_id) -> dict:
+def emulandice_preprocess(infile, baseyear, pipeline_id, headfile, outfile) -> dict:
     # If no input file was passed, look for one produced by a pre-projection workflow
     if infile is None:
         indir = os.path.dirname(__file__)
@@ -71,8 +71,6 @@ def emulandice_preprocess(infile, baseyear, pipeline_id) -> dict:
     nsamps = samps.shape[0]
 
     # Append these samples to the output file
-    headfile = os.path.join(os.path.dirname(__file__), "FACTS_CLIMATE_FORCING.csv.head")
-    outfile = os.path.join(os.path.dirname(__file__), "FACTS_CLIMATE_FORCING.csv")
     shutil.copyfile(headfile, outfile)
     WriteToCSV(outfile, samps, mode="a")
 
@@ -81,7 +79,7 @@ def emulandice_preprocess(infile, baseyear, pipeline_id) -> dict:
         "scenario": scenario,
         "baseyear": baseyear,
         "infile": infile,
-        "facts_data_file": outfile,
+        "facts_data_file": str(outfile),
         "nsamps": nsamps,
     }
     return output

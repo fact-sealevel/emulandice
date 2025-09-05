@@ -1,5 +1,4 @@
 import numpy as np
-import os
 import time
 import argparse
 from emulandice.read_locationfile import ReadLocationFile
@@ -14,10 +13,13 @@ import dask.array as da
 
 
 def emulandice_postprocess_AIS(
+    *,
     my_data: dict,
     locationfile,
     chunksize,
     pipeline_id,
+    fprint_wais_file,
+    fprint_eais_file,
     output_lslr_file: str,
     output_eais_file: str | None = None,
     output_wais_file: str | None = None,
@@ -36,13 +38,8 @@ def emulandice_postprocess_AIS(
     nsamps = waissamps.shape[0]
 
     # Get the fingerprints for all sites from all ice sheets
-    fpdir = os.path.join(os.path.dirname(__file__), "FPRINT")
-    waisfp = da.array(
-        AssignFP(os.path.join(fpdir, "fprint_wais.nc"), site_lats, site_lons)
-    )
-    eaisfp = da.array(
-        AssignFP(os.path.join(fpdir, "fprint_eais.nc"), site_lats, site_lons)
-    )
+    waisfp = da.array(AssignFP(fprint_wais_file, site_lats, site_lons))
+    eaisfp = da.array(AssignFP(fprint_eais_file, site_lats, site_lons))
 
     # Rechunk the fingerprints for memory
     waisfp = waisfp.rechunk(chunksize)

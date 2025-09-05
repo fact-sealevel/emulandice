@@ -439,15 +439,8 @@
     },
     "emulandice": {
       "Package": "emulandice",
-      "Version": "1.0.0",
-      "Source": "GitHub",
-      "RemoteType": "github",
-      "RemoteHost": "api.github.com",
-      "RemoteUsername": "tamsinedwards",
-      "RemoteRepo": "emulandice",
-      "RemoteRef": "e3245fa1ce8718d0fa843b488ea6f8f0eac68c9a",
-      "RemoteSha": "e3245fa1ce8718d0fa843b488ea6f8f0eac68c9a",
-      "Hash": "32e6d9ad7673ef779ee17f401268907a",
+      "Version": "1.1.0",
+      "Source": "./emulandice_1.1.0.tar.gz",
       "Requirements": [
         "DiceEval",
         "DiceKriging",

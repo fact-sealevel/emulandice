@@ -78,7 +78,13 @@ def ExtractProjections(emulandice_file):
     return (wais_data, eais_data, pen_data, targyears)
 
 
-def _run_emulandice(*, emulandice_dataset: str, nsamps: int | str, icesource: str) -> None:
+def _run_emulandice(
+    *,
+    emulandice_dataset: str,
+    nsamps: int | str,
+    icesource: str,
+    outdir: str = "results",
+) -> None:
     """
     Runs emulandice as a subprocess via R. Requires `emulandice` to be installed and available to R. R must be available in PATH.
 
@@ -87,17 +93,18 @@ def _run_emulandice(*, emulandice_dataset: str, nsamps: int | str, icesource: st
     # Safety to ensure nsamps can be interpreted as int.
     nsamps = str(int(nsamps))
 
-    # Sanitize user inputs. NOTE this is only for POSIX systems.
+    # Sanitize user inputs.
     emulandice_dataset = shlex.quote(emulandice_dataset)
     nsamps = shlex.quote(nsamps)
     icesource = shlex.quote(icesource)
+    outdir = shlex.quote(outdir)
 
-    # TODO: Stopped here. Original emulandice library in R doesn't allow this. Needs emulandice fork from facts repo, but unclear what changes are. Do new fork?
-    r_cmd = f"emulandice::main('decades', dataset='{emulandice_dataset}', N_FACTS={nsamps}, ice_sources=c('{icesource}'))"
-    
+    r_cmd = f"library(emulandice);emulandice::main('decades', dataset='{emulandice_dataset}', N_FACTS={nsamps}, outdir='{outdir}', ice_sources=c('{icesource}'))"
+
     subprocess.run(
-        ["R", "-e", r_cmd],
+        ["R", "-q", "--no-save", "-e", r_cmd],
         shell=False,
+        check=True,
     )
 
 
@@ -105,6 +112,7 @@ def emulandice_project_AIS(
     pipeline_id: str,
     preprocess_data: dict,
     fit_data: dict,
+    output_dir,
     output_gslr_file: str,
     output_eais_file: str | None = None,
     output_wais_file: str | None = None,
@@ -121,13 +129,16 @@ def emulandice_project_AIS(
 
     # Run the module using the FACTS forcing data
 
-    emulandice_dataset = "FACTS_CLIMATE_FORCING.csv"
-    _run_emulandice(emulandice_dataset=emulandice_dataset, nsamps=nsamps, icesource=icesource)
+    emulandice_dataset = preprocess_data["facts_data_file"]
+    _run_emulandice(
+        emulandice_dataset=emulandice_dataset,
+        nsamps=nsamps,
+        icesource=icesource,
+        outdir=output_dir,
+    )
 
     # Get the output from the emulandice run
-    emulandice_file = os.path.join(
-        os.path.dirname(__file__), "results", "projections_FAIR_FACTS.csv"
-    )
+    emulandice_file = os.path.join(output_dir, "projections_FAIR_FACTS.csv")
     wais_samples, eais_samples, pen_samples, targyears = ExtractProjections(
         emulandice_file
     )

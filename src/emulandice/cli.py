@@ -2,6 +2,9 @@
 Logic for the CLI.
 """
 
+from pathlib import Path
+import tempfile
+
 import click
 
 from emulandice.emulandice_preprocess import emulandice_preprocess
@@ -29,6 +32,13 @@ def main():
     "--input-data-file",
     envvar="EMULANDICE_INPUT_DATA_FILE",
     help="Full path for temperature trajectory input file.",
+    type=str,
+    required=True,
+)
+@click.option(
+    "--forcing-head-path",
+    envvar="EMULANDICE_FORCING_HEAD_PATH",
+    help="Path to the climate forcing head CSV file.",
     type=str,
     required=True,
 )
@@ -72,6 +82,20 @@ def main():
     required=True,
 )
 @click.option(
+    "--fprint-wais-file",
+    envvar="EMULANDICE_FPRINT_WAIS_FILE",
+    help="File containing WAIS fingerprint data.",
+    type=str,
+    required=True,
+)
+@click.option(
+    "--fprint-eais-file",
+    envvar="EMULANDICE_FPRINT_EAIS_FILE",
+    help="File containing EAIS fingerprint data.",
+    type=str,
+    required=True,
+)
+@click.option(
     "--output-gslr-eais-file",
     envvar="EMULANDICE_OUTPUT_GSLR_EAIS_FILE",
     help="Path to write output global SLR EAIS file.",
@@ -108,12 +132,15 @@ def main():
 )
 def ais(
     input_data_file,
+    forcing_head_path,
     pipeline_id,
     output_gslr_file,
     output_lslr_file,
     baseyear,
     chunksize,
     location_file,
+    fprint_wais_file,
+    fprint_eais_file,
     output_gslr_eais_file,
     output_gslr_wais_file,
     output_gslr_pen_file,
@@ -124,22 +151,41 @@ def ais(
     Project sealevel rise from Antarctic Ice Sheet (AIS)
     """
     click.echo("Hello from emulandice AIS")
-    preprocessed = emulandice_preprocess(input_data_file, baseyear, pipeline_id)
-    fitted = emulandice_fit_AIS(pipeline_id)
-    projected = emulandice_project_AIS(
-        pipeline_id,
-        preprocess_data=preprocessed,
-        fit_data=fitted,
-        output_gslr_file=output_gslr_file,
-        output_eais_file=output_gslr_eais_file,
-        output_wais_file=output_gslr_wais_file,
-        output_pen_file=output_gslr_pen_file,
-    )
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmpdir = Path(tmpdir)
+        forcing_path = tmpdir / "facts_climate_forcing.csv"
+        emulandice_r_output_dir = tmpdir / "results"
+        emulandice_r_output_dir.mkdir(parents=True, exist_ok=True)
+
+        preprocessed = emulandice_preprocess(
+            input_data_file,
+            baseyear,
+            pipeline_id,
+            headfile=forcing_head_path,
+            outfile=forcing_path,
+        )
+
+        fitted = emulandice_fit_AIS(pipeline_id)
+
+        projected = emulandice_project_AIS(
+            pipeline_id,
+            preprocess_data=preprocessed,
+            fit_data=fitted,
+            output_dir=str(emulandice_r_output_dir),
+            output_gslr_file=output_gslr_file,
+            output_eais_file=output_gslr_eais_file,
+            output_wais_file=output_gslr_wais_file,
+            output_pen_file=output_gslr_pen_file,
+        )
+
     emulandice_postprocess_AIS(
         my_data=projected,
         locationfile=location_file,
         chunksize=chunksize,
         pipeline_id=pipeline_id,
+        fprint_wais_file=fprint_wais_file,
+        fprint_eais_file=fprint_eais_file,
         output_lslr_file=output_lslr_file,
         output_eais_file=output_lslr_eais_file,
         output_wais_file=output_lslr_wais_file,
@@ -161,6 +207,13 @@ def ais(
     required=True,
 )
 @click.option(
+    "--forcing-head-path",
+    envvar="EMULANDICE_FORCING_HEAD_PATH",
+    help="Path to the climate forcing head CSV file.",
+    type=str,
+    required=True,
+)
+@click.option(
     "--baseyear",
     envvar="EMULANDICE_BASEYEAR",
     help="Base year to which projections should be referenced.",
@@ -179,13 +232,22 @@ def ais(
     type=str,
     required=True,
 )
-def gris(input_data_file, pipeline_id, baseyear, chunksize, location_file):
+def gris(
+    input_data_file,
+    pipeline_id,
+    forcing_head_path,
+    baseyear,
+    chunksize,
+    location_file,
+):
     """
     Project sealevel rise from Greenland Ice Sheet (GrIS)
     """
     click.echo("Hello from emulandice GrIS")
 
-    preprocessed = emulandice_preprocess(input_data_file, baseyear, pipeline_id)
+    preprocessed = emulandice_preprocess(
+        input_data_file, baseyear, pipeline_id, headfile=forcing_head_path
+    )
     emulandice_fit_GrIS(pipeline_id)
     emulandice_project_GrIS(pipeline_id)
     emulandice_postprocess_GrIS(location_file, chunksize, pipeline_id)
@@ -206,6 +268,13 @@ def gris(input_data_file, pipeline_id, baseyear, chunksize, location_file):
     required=True,
 )
 @click.option(
+    "--forcing-head-path",
+    envvar="EMULANDICE_FORCING_HEAD_PATH",
+    help="Path to the climate forcing head CSV file.",
+    type=str,
+    required=True,
+)
+@click.option(
     "--baseyear",
     envvar="EMULANDICE_BASEYEAR",
     help="Base year to which projections should be referenced.",
@@ -224,13 +293,22 @@ def gris(input_data_file, pipeline_id, baseyear, chunksize, location_file):
     type=str,
     required=True,
 )
-def glaciers(input_data_file, pipeline_id, baseyear, chunksize, location_file):
+def glaciers(
+    input_data_file,
+    pipeline_id,
+    forcing_head_path,
+    baseyear,
+    chunksize,
+    location_file,
+):
     """
     Project sealevel rise from glaciers
     """
     click.echo("Hello from emulandice glaciers")
 
-    preprocessed = emulandice_preprocess(input_data_file, baseyear, pipeline_id)
+    preprocessed = emulandice_preprocess(
+        input_data_file, baseyear, pipeline_id, headfile=forcing_head_path
+    )
     emulandice_fit_glaciers(pipeline_id)
     emulandice_project_glaciers(pipeline_id)
     emulandice_postprocess_glaciers(location_file, chunksize, pipeline_id)
