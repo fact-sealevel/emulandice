@@ -39,12 +39,6 @@ def main():
     required=True,
 )
 @click.option(
-    "--scenario",
-    envvar="EMULANDICE_SCENARIO",
-    help="SSP scenario (i.e ssp585).",
-    default="ssp585",
-)
-@click.option(
     "--output-gslr-file",
     envvar="EMULANDICE_OUTPUT_GSLR_FILE",
     help="Path to write output global SLR file.",
@@ -115,7 +109,6 @@ def main():
 def ais(
     input_data_file,
     pipeline_id,
-    scenario,
     output_gslr_file,
     output_lslr_file,
     baseyear,
@@ -131,9 +124,7 @@ def ais(
     Project sealevel rise from Antarctic Ice Sheet (AIS)
     """
     click.echo("Hello from emulandice AIS")
-    preprocessed = emulandice_preprocess(
-        input_data_file, baseyear, pipeline_id, scenario
-    )
+    preprocessed = emulandice_preprocess(input_data_file, baseyear, pipeline_id)
     fitted = emulandice_fit_AIS(pipeline_id)
     projected = emulandice_project_AIS(
         pipeline_id,
@@ -170,12 +161,6 @@ def ais(
     required=True,
 )
 @click.option(
-    "--scenario",
-    envvar="EMULANDICE_SCENARIO",
-    help="SSP scenario (i.e ssp585).",
-    default="ssp585",
-)
-@click.option(
     "--baseyear",
     envvar="EMULANDICE_BASEYEAR",
     help="Base year to which projections should be referenced.",
@@ -194,15 +179,13 @@ def ais(
     type=str,
     required=True,
 )
-def gris(input_data_file, scenario, pipeline_id, baseyear, chunksize, location_file):
+def gris(input_data_file, pipeline_id, baseyear, chunksize, location_file):
     """
     Project sealevel rise from Greenland Ice Sheet (GrIS)
     """
     click.echo("Hello from emulandice GrIS")
 
-    preprocessed = emulandice_preprocess(
-        input_data_file, baseyear, pipeline_id, scenario
-    )
+    preprocessed = emulandice_preprocess(input_data_file, baseyear, pipeline_id)
     emulandice_fit_GrIS(pipeline_id)
     emulandice_project_GrIS(pipeline_id)
     emulandice_postprocess_GrIS(location_file, chunksize, pipeline_id)
@@ -223,12 +206,6 @@ def gris(input_data_file, scenario, pipeline_id, baseyear, chunksize, location_f
     required=True,
 )
 @click.option(
-    "--scenario",
-    envvar="EMULANDICE_SCENARIO",
-    help="SSP scenario (i.e ssp585).",
-    default="ssp585",
-)
-@click.option(
     "--baseyear",
     envvar="EMULANDICE_BASEYEAR",
     help="Base year to which projections should be referenced.",
@@ -247,17 +224,13 @@ def gris(input_data_file, scenario, pipeline_id, baseyear, chunksize, location_f
     type=str,
     required=True,
 )
-def glaciers(
-    input_data_file, pipeline_id, scenario, baseyear, chunksize, location_file
-):
+def glaciers(input_data_file, pipeline_id, baseyear, chunksize, location_file):
     """
     Project sealevel rise from glaciers
     """
     click.echo("Hello from emulandice glaciers")
 
-    preprocessed = emulandice_preprocess(
-        input_data_file, baseyear, pipeline_id, scenario
-    )
+    preprocessed = emulandice_preprocess(input_data_file, baseyear, pipeline_id)
     emulandice_fit_glaciers(pipeline_id)
     emulandice_project_glaciers(pipeline_id)
     emulandice_postprocess_glaciers(location_file, chunksize, pipeline_id)

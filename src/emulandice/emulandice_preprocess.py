@@ -7,24 +7,23 @@ import shutil
 from netCDF4 import Dataset
 
 
-def GetSamples(ncfile, years, baseyear, scenario_grp):
+def GetSamples(ncfile, years, baseyear):
     # Load the nc file
     with Dataset(ncfile, "r") as nc:
-        grp = nc.groups[scenario_grp]
         # Extract the variables
-        ncyears = grp.variables["years"][...]
-        samples = np.squeeze(grp.variables["surface_temperature"][...])
-        scenario = grp.getncattr("Scenario")
+        ncyears = nc.variables["years"][...]
+        samples = np.squeeze(nc.variables["surface_temperature"][...])
+        scenario = nc.getncattr("Scenario")
 
     # Extract the reference value
     baseyear_idx = np.flatnonzero(ncyears == baseyear)
-    ref_val = samples[baseyear_idx, :]
+    ref_val = samples[:, baseyear_idx]
 
     # Indices of years to extract and return
     year_idx = np.flatnonzero(np.isin(ncyears, years))
 
     # Squeeze out the location dimension (should be global temperature trajectories)
-    samples = samples[year_idx, :] - ref_val
+    samples = samples[:, year_idx] - ref_val
 
     # Return the samples
     return (samples, scenario)
@@ -51,7 +50,7 @@ def WriteToCSV(outfile, samples, mode="w"):
     return None
 
 
-def emulandice_preprocess(infile, baseyear, pipeline_id, scenario) -> dict:
+def emulandice_preprocess(infile, baseyear, pipeline_id) -> dict:
     # If no input file was passed, look for one produced by a pre-projection workflow
     if infile is None:
         indir = os.path.dirname(__file__)
@@ -66,7 +65,7 @@ def emulandice_preprocess(infile, baseyear, pipeline_id, scenario) -> dict:
     years = np.arange(2015, 2101)
 
     # Get the samples
-    samps, _ = GetSamples(infile, years, baseyear, scenario_grp=scenario)
+    samps, scenario = GetSamples(infile, years, baseyear)
 
     # How many samples are we running?
     nsamps = samps.shape[0]

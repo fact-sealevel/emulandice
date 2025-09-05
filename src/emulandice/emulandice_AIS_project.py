@@ -78,9 +78,7 @@ def ExtractProjections(emulandice_file):
     return (wais_data, eais_data, pen_data, targyears)
 
 
-def _run_emulandice(
-    *, emulandice_dataset: str, nsamps: int | str, icesource: str
-) -> None:
+def _run_emulandice(*, emulandice_dataset: str, nsamps: int | str, icesource: str) -> None:
     """
     Runs emulandice as a subprocess via R. Requires `emulandice` to be installed and available to R. R must be available in PATH.
 
@@ -96,7 +94,7 @@ def _run_emulandice(
 
     # TODO: Stopped here. Original emulandice library in R doesn't allow this. Needs emulandice fork from facts repo, but unclear what changes are. Do new fork?
     r_cmd = f"emulandice::main('decades', dataset='{emulandice_dataset}', N_FACTS={nsamps}, ice_sources=c('{icesource}'))"
-
+    
     subprocess.run(
         ["R", "-e", r_cmd],
         shell=False,
@@ -124,9 +122,7 @@ def emulandice_project_AIS(
     # Run the module using the FACTS forcing data
 
     emulandice_dataset = "FACTS_CLIMATE_FORCING.csv"
-    _run_emulandice(
-        emulandice_dataset=emulandice_dataset, nsamps=nsamps, icesource=icesource
-    )
+    _run_emulandice(emulandice_dataset=emulandice_dataset, nsamps=nsamps, icesource=icesource)
 
     # Get the output from the emulandice run
     emulandice_file = os.path.join(
