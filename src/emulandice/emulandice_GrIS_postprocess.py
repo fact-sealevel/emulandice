@@ -1,6 +1,4 @@
 import numpy as np
-import os
-import pickle
 import time
 import argparse
 from emulandice.read_locationfile import ReadLocationFile
@@ -14,36 +12,29 @@ import dask.array as da
 """
 
 
-def emulandice_postprocess_GrIS(locationfilename, chunksize, pipeline_id):
-    # Read in the fitted parameters from parfile
-    projfile = "{}_projections.pkl".format(pipeline_id)
-    try:
-        f = open(projfile, "rb")
-    except Exception:
-        print("Cannot open projfile\n")
-        raise
-
-    # Extract the data from the file
-    my_data = pickle.load(f)
+def emulandice_postprocess_GrIS(
+    *,
+    my_data: dict,
+    locationfile,
+    chunksize,
+    pipeline_id,
+    fprint_gis_file,
+    output_lslr_file: str,
+):
     gissamps = my_data["gissamps"]
     targyears = my_data["targyears"]
     scenario = my_data["scenario"]
     baseyear = my_data["baseyear"]
     preprocess_infile = my_data["preprocess_infile"]
-    f.close()
 
     # Load the site locations
-    locationfile = os.path.join(os.path.dirname(__file__), locationfilename)
     (_, site_ids, site_lats, site_lons) = ReadLocationFile(locationfile)
 
     # Get some dimension data from the loaded data structures
     nsamps = gissamps.shape[0]
 
     # Get the fingerprints for all sites from all ice sheets
-    fpdir = os.path.join(os.path.dirname(__file__), "FPRINT")
-    gisfp = da.array(
-        AssignFP(os.path.join(fpdir, "fprint_gis.nc"), site_lats, site_lons)
-    )
+    gisfp = da.array(AssignFP(fprint_gis_file, site_lats, site_lons))
 
     # Rechunk the fingerprints for memory
     gisfp = gisfp.rechunk(chunksize)
@@ -84,7 +75,7 @@ def emulandice_postprocess_GrIS(locationfilename, chunksize, pipeline_id):
 
     # Write the netcdf output files
     gis_out.to_netcdf(
-        "{0}_localsl.nc".format(pipeline_id),
+        output_lslr_file,
         encoding={
             "sea_level_change": {
                 "dtype": "f4",

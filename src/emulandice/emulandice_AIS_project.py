@@ -3,11 +3,10 @@ import os
 import sys
 import argparse
 import re
-import time
-import subprocess
-import shlex
-from netCDF4 import Dataset
 from scipy.stats import truncnorm
+
+from emulandice.r_helper import run_emulandice
+from emulandice.io import WriteNetCDF
 
 
 # For AIS, there are three regions (WAIS, EAIS, and PEN)
@@ -78,36 +77,6 @@ def ExtractProjections(emulandice_file):
     return (wais_data, eais_data, pen_data, targyears)
 
 
-def _run_emulandice(
-    *,
-    emulandice_dataset: str,
-    nsamps: int | str,
-    icesource: str,
-    outdir: str = "results",
-) -> None:
-    """
-    Runs emulandice as a subprocess via R. Requires `emulandice` to be installed and available to R. R must be available in PATH.
-
-    This only runs on POSIX systems.
-    """
-    # Safety to ensure nsamps can be interpreted as int.
-    nsamps = str(int(nsamps))
-
-    # Sanitize user inputs.
-    emulandice_dataset = shlex.quote(emulandice_dataset)
-    nsamps = shlex.quote(nsamps)
-    icesource = shlex.quote(icesource)
-    outdir = shlex.quote(outdir)
-
-    r_cmd = f"library(emulandice);emulandice::main('decades', dataset='{emulandice_dataset}', N_FACTS={nsamps}, outdir='{outdir}', ice_sources=c('{icesource}'))"
-
-    subprocess.run(
-        ["R", "-q", "--no-save", "-e", r_cmd],
-        shell=False,
-        check=True,
-    )
-
-
 def emulandice_project_AIS(
     pipeline_id: str,
     preprocess_data: dict,
@@ -130,7 +99,7 @@ def emulandice_project_AIS(
     # Run the module using the FACTS forcing data
 
     emulandice_dataset = preprocess_data["facts_data_file"]
-    _run_emulandice(
+    run_emulandice(
         emulandice_dataset=emulandice_dataset,
         nsamps=nsamps,
         icesource=icesource,
@@ -240,58 +209,6 @@ def emulandice_project_AIS(
         )
 
     return output
-
-
-def WriteNetCDF(
-    slr,
-    targyears,
-    baseyear,
-    scenario,
-    nsamps,
-    pipeline_id,
-    nc_filename: str,
-    nc_description: str,
-):
-    rootgrp = Dataset(nc_filename, "w", format="NETCDF4")
-
-    # Define Dimensions
-    _ = rootgrp.createDimension("years", len(targyears))
-    _ = rootgrp.createDimension("samples", nsamps)
-    _ = rootgrp.createDimension("locations", 1)
-
-    # Populate dimension variables
-    year_var = rootgrp.createVariable("years", "i4", ("years",))
-    samp_var = rootgrp.createVariable("samples", "i8", ("samples",))
-    loc_var = rootgrp.createVariable("locations", "i8", ("locations",))
-    lat_var = rootgrp.createVariable("lat", "f4", ("locations",))
-    lon_var = rootgrp.createVariable("lon", "f4", ("locations",))
-
-    # Create a data variable
-    samps = rootgrp.createVariable(
-        "sea_level_change",
-        "f4",
-        ("samples", "years", "locations"),
-        zlib=True,
-        complevel=4,
-    )
-
-    # Assign attributes
-    rootgrp.description = nc_description
-    rootgrp.history = "Created " + time.ctime(time.time())
-    rootgrp.source = "FACTS: {0}. ".format(pipeline_id)
-    rootgrp.baseyear = baseyear
-    rootgrp.scenario = scenario
-    samps.units = "mm"
-
-    # Put the data into the netcdf variables
-    year_var[:] = targyears
-    samp_var[:] = np.arange(nsamps)
-    samps[:, :, :] = slr[:, :, np.newaxis]
-    lat_var[:] = np.inf
-    lon_var[:] = np.inf
-    loc_var[:] = -1
-
-    return None
 
 
 if __name__ == "__main__":

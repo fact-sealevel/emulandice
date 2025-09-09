@@ -201,10 +201,31 @@ def ais(
     required=True,
 )
 @click.option(
+    "--forcing-head-path",
+    envvar="EMULANDICE_FORCING_HEAD_PATH",
+    help="Path to the climate forcing head CSV file.",
+    type=str,
+    required=True,
+)
+@click.option(
     "--pipeline-id",
     envvar="EMULANDICE_PIPELINE_ID",
     help="Unique identifier for this instance of the module.",
     required=True,
+)
+@click.option(
+    "--output-gslr-file",
+    envvar="EMULANDICE_OUTPUT_GSLR_FILE",
+    help="Path to write output global SLR file.",
+    required=True,
+    type=str,
+)
+@click.option(
+    "--output-lslr-file",
+    envvar="EMULANDICE_OUTPUT_LSLR_FILE",
+    help="Path to write output local SLR EAIS file.",
+    type=str,
+    default=None,
 )
 @click.option(
     "--forcing-head-path",
@@ -232,25 +253,61 @@ def ais(
     type=str,
     required=True,
 )
+@click.option(
+    "--fprint-gis-file",
+    envvar="EMULANDICE_FPRINT_GIS_FILE",
+    help="File containing GIS fingerprint data.",
+    type=str,
+    required=True,
+)
 def gris(
     input_data_file,
-    pipeline_id,
     forcing_head_path,
+    pipeline_id,
+    output_gslr_file,
+    output_lslr_file,
     baseyear,
     chunksize,
     location_file,
+    fprint_gis_file,
 ):
     """
     Project sealevel rise from Greenland Ice Sheet (GrIS)
     """
     click.echo("Hello from emulandice GrIS")
 
-    preprocessed = emulandice_preprocess(
-        input_data_file, baseyear, pipeline_id, headfile=forcing_head_path
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmpdir = Path(tmpdir)
+        forcing_path = tmpdir / "facts_climate_forcing.csv"
+        emulandice_r_output_dir = tmpdir / "results"
+        emulandice_r_output_dir.mkdir(parents=True, exist_ok=True)
+
+        preprocessed = emulandice_preprocess(
+            input_data_file,
+            baseyear,
+            pipeline_id,
+            headfile=forcing_head_path,
+            outfile=forcing_path,
+        )
+
+        fitted = emulandice_fit_GrIS(pipeline_id)
+
+        projected = emulandice_project_GrIS(
+            pipeline_id=pipeline_id,
+            preprocess_data=preprocessed,
+            fit_data=fitted,
+            output_dir=str(emulandice_r_output_dir),
+            output_gslr_file=output_gslr_file,
+        )
+
+    emulandice_postprocess_GrIS(
+        my_data=projected,
+        locationfile=location_file,
+        chunksize=chunksize,
+        pipeline_id=pipeline_id,
+        fprint_gis_file=fprint_gis_file,
+        output_lslr_file=output_lslr_file,
     )
-    emulandice_fit_GrIS(pipeline_id)
-    emulandice_project_GrIS(pipeline_id)
-    emulandice_postprocess_GrIS(location_file, chunksize, pipeline_id)
 
 
 @main.command

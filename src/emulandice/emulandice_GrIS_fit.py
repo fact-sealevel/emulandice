@@ -1,7 +1,5 @@
-import os
 import sys
 import argparse
-import pickle
 
 
 def emulandice_fit_GrIS(pipeline_id):
@@ -11,17 +9,7 @@ def emulandice_fit_GrIS(pipeline_id):
 
     # Populate the output dictionary
     outdata = {"trend_mean": trend_mean, "trend_sd": trend_sd}
-
-    # Define the data directory
-    outdir = os.path.dirname(__file__)
-
-    # Write the rates data to a pickle file
-    outfile = open(os.path.join(outdir, "{}_fit.pkl".format(pipeline_id)), "wb")
-    pickle.dump(outdata, outfile)
-    outfile.close()
-
-    # Done
-    return None
+    return outdata
 
 
 if __name__ == "__main__":

@@ -15,6 +15,8 @@ mkdir -p ./data/output
   
 ```
 
+for AIS
+
 ```shell
 docker run --rm \
   -v ./data/input:/input/:ro \
@@ -23,6 +25,21 @@ docker run --rm \
   --pipeline-id=1234 \
   --fprint-wais-file="/input/FPRINT/fprint_wais.nc" \
   --fprint-eais-file="/input/FPRINT/fprint_eais.nc" \
+  --input-data-file="/input/gsat.nc" \
+  --location-file="/input/location.lst" \
+  --output-gslr-file="/output/gslr.nc" \
+  --output-lslr-file="/output/lslr.nc"
+```
+
+for GrIS
+
+```shell
+docker run --rm \
+  -v ./data/input:/input/:ro \
+  -v ./data/output:/output \
+  emulandice:dev gris \
+  --pipeline-id=1234 \
+  --fprint-gis-file="/input/FPRINT/fprint_gis.nc" \
   --input-data-file="/input/gsat.nc" \
   --location-file="/input/location.lst" \
   --output-gslr-file="/output/gslr.nc" \
