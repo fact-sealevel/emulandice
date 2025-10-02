@@ -2,11 +2,12 @@
 FROM rocker/tidyverse:4.1.2
 
 COPY renv.lock renv.lock
-COPY ./emulandice_1.1.0.tar.gz ./emulandice_1.1.0.tar.gz
+COPY ./modules/emulandice/shared/emulandice ./emulandice
+RUN tar -cz --exclude ".DS_Store" -f emulandice_1.1.0.tar.gz emulandice/
 RUN R -q --no-save -e "install.packages('renv', version='1.1.5')"
 RUN R -q --no-save -e "renv::restore()"
 
-## To create a locked environment.
+## To create a locked environment. But, this DOESN'T WORK!
 # RUN R -e "install.packages('renv', version='1.1.5')"
 # RUN R -e "renv::init(bare=TRUE)"
 # RUN R -e "renv::install('tamsinedwards/emulandice@e3245fa')"
