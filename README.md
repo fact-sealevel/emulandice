@@ -45,6 +45,22 @@ docker run --rm \
   --output-gslr-file="/output/gslr.nc" \
   --output-lslr-file="/output/lslr.nc"
 ```
+for glaciers
+
+```shell
+docker run --rm \
+  -v ./data/input:/input/:ro \
+  -v ./data/output:/output \
+  emulandice:dev glaciers \
+  --pipeline-id=1234 \
+  --fprint-glacier-dir="/input/FPRINT" \
+  --fprint-map-file="/input/fingerprint_region_map.csv" \
+  --input-data-file="/input/gsat.nc" \
+  --location-file="/input/location.lst" \
+  --output-gslr-file="/output/gslr.nc" \
+  --output-lslr-file="/output/lslr.nc" \
+  --output-glacier-dir="/output/glacier"
+```
 
 ```shell
 docker build -t emulandice:dev . --platform="linux/amd64"

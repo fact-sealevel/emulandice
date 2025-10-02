@@ -1,6 +1,5 @@
 import numpy as np
 import os
-import pickle
 import time
 import argparse
 from emulandice.read_locationfile import ReadLocationFile
@@ -14,28 +13,25 @@ import dask.array as da
 """
 
 
-def emulandice_postprocess_glaciers(locationfilename, chunksize, pipeline_id):
-    # Read in the projection data
-    projfile = "{}_projections.pkl".format(pipeline_id)
-    try:
-        f = open(projfile, "rb")
-    except Exception:
-        print("Cannot open projfile\n")
-        raise
-
-    # Extract the data from the file
-    my_data = pickle.load(f)
+def emulandice_postprocess_glaciers(
+    *,
+    my_data,
+    locationfile,
+    chunksize,
+    pipeline_id,
+    fprint_map_file,
+    fprint_glacier_dir,
+    output_lslr_file: str,
+):
     gicsamps = my_data["gic_samps"]
     targyears = my_data["targyears"]
     scenario = my_data["scenario"]
     baseyear = my_data["baseyear"]
     preprocess_infile = my_data["preprocess_infile"]
-    f.close()
 
     # Load the fingerprint metadata
-    fpfile = os.path.join(os.path.dirname(__file__), "fingerprint_region_map.csv")
     fpmap_data = np.genfromtxt(
-        fpfile,
+        fprint_map_file,
         dtype=None,
         names=True,
         delimiter=",",
@@ -46,8 +42,7 @@ def emulandice_postprocess_glaciers(locationfilename, chunksize, pipeline_id):
     fpmaps = fpmap_data["FPID"]
 
     # Load the site locations
-    locationfile = os.path.join(os.path.dirname(__file__), locationfilename)
-    (_, site_ids, site_lats, site_lons) = ReadLocationFile(locationfile)
+    _, site_ids, site_lats, site_lons = ReadLocationFile(locationfile)
 
     # Initialize variable to hold the localized projections
     gicsamps = np.transpose(gicsamps, (1, 0, 2))
@@ -56,14 +51,14 @@ def emulandice_postprocess_glaciers(locationfilename, chunksize, pipeline_id):
     local_sl = da.zeros((nsamps, nyears, nsites), chunks=(-1, -1, chunksize))
 
     # Loop through the GIC regions
-    for i in np.arange(nregions):
+    for i in range(nregions):
         # Get the fingerprint file name for this region
         fp_idx = np.flatnonzero(fpmapperids == i + 1)
         thisRegion = fpmaps[fp_idx][0]
 
         # Get the fingerprints for these sites from this region
         regionfile = os.path.join(
-            os.path.dirname(__file__), "FPRINT", "fprint_{0}.nc".format(thisRegion)
+            fprint_glacier_dir, "fprint_{0}.nc".format(thisRegion)
         )
         regionfp = da.from_array(
             AssignFP(regionfile, site_lats, site_lons), chunks=chunksize
@@ -105,7 +100,7 @@ def emulandice_postprocess_glaciers(locationfilename, chunksize, pipeline_id):
     )
 
     glac_out.to_netcdf(
-        "{0}_localsl.nc".format(pipeline_id),
+        output_lslr_file,
         encoding={
             "sea_level_change": {
                 "dtype": "f4",
@@ -115,8 +110,6 @@ def emulandice_postprocess_glaciers(locationfilename, chunksize, pipeline_id):
             }
         },
     )
-
-    return None
 
 
 if __name__ == "__main__":

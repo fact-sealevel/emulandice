@@ -223,7 +223,7 @@ def ais(
 @click.option(
     "--output-lslr-file",
     envvar="EMULANDICE_OUTPUT_LSLR_FILE",
-    help="Path to write output local SLR EAIS file.",
+    help="Path to write output local SLR file.",
     type=str,
     default=None,
 )
@@ -325,11 +325,46 @@ def gris(
     required=True,
 )
 @click.option(
+    "--output-gslr-file",
+    envvar="EMULANDICE_OUTPUT_GSLR_FILE",
+    help="Path to write output global SLR file.",
+    required=True,
+    type=str,
+)
+@click.option(
+    "--fprint-glacier-dir",
+    envvar="EMULANDICE_FPRINT_GLACIER_DIR",
+    help="Path to directory containing glacier fprint files.",
+    type=str,
+    required=True,
+)
+@click.option(
+    "--output-lslr-file",
+    envvar="EMULANDICE_OUTPUT_LSLR_FILE",
+    help="Path to write output local SLR file.",
+    type=str,
+    default=None,
+)
+@click.option(
     "--forcing-head-path",
     envvar="EMULANDICE_FORCING_HEAD_PATH",
     help="Path to the climate forcing head CSV file.",
     type=str,
     required=True,
+)
+@click.option(
+    "--fprint-map-file",
+    envvar="EMULANDICE_FPRINT_MAP_FILE",
+    help="Path to the fingerprint region map CSV file.",
+    type=str,
+    required=True,
+)
+@click.option(
+    "--output-glacier-dir",
+    envvar="EMULANDICE_OUTPUT_GLACIER_DIR",
+    help="Path to directory into which output glacier GSLR files will be stored. The directory will be created if it doesn't already exist",
+    type=str,
+    default=None,
 )
 @click.option(
     "--baseyear",
@@ -354,6 +389,11 @@ def glaciers(
     input_data_file,
     pipeline_id,
     forcing_head_path,
+    fprint_map_file,
+    output_gslr_file,
+    output_lslr_file,
+    fprint_glacier_dir,
+    output_glacier_dir,
     baseyear,
     chunksize,
     location_file,
@@ -363,9 +403,37 @@ def glaciers(
     """
     click.echo("Hello from emulandice glaciers")
 
-    preprocessed = emulandice_preprocess(
-        input_data_file, baseyear, pipeline_id, headfile=forcing_head_path
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmpdir = Path(tmpdir)
+        forcing_path = tmpdir / "facts_climate_forcing.csv"
+        emulandice_r_output_dir = tmpdir / "results"
+        emulandice_r_output_dir.mkdir(parents=True, exist_ok=True)
+
+        preprocessed = emulandice_preprocess(
+            input_data_file,
+            baseyear,
+            pipeline_id,
+            headfile=forcing_head_path,
+            outfile=forcing_path,
+        )
+
+        fitted = emulandice_fit_glaciers(pipeline_id)
+
+        projected = emulandice_project_glaciers(
+            pipeline_id=pipeline_id,
+            preprocess_data=preprocessed,
+            fit_data=fitted,
+            output_dir=str(emulandice_r_output_dir),
+            output_gslr_file=output_gslr_file,
+            output_glacier_dir=output_glacier_dir,
+        )
+
+    emulandice_postprocess_glaciers(
+        my_data=projected,
+        locationfile=location_file,
+        chunksize=chunksize,
+        pipeline_id=pipeline_id,
+        fprint_map_file=fprint_map_file,
+        fprint_glacier_dir=fprint_glacier_dir,
+        output_lslr_file=output_lslr_file,
     )
-    emulandice_fit_glaciers(pipeline_id)
-    emulandice_project_glaciers(pipeline_id)
-    emulandice_postprocess_glaciers(location_file, chunksize, pipeline_id)

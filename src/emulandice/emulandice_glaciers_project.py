@@ -1,13 +1,13 @@
+from pathlib import Path
 import numpy as np
 import os
 import sys
 import argparse
 import re
-import pickle
-import time
-import subprocess
-from netCDF4 import Dataset
 from scipy.stats import norm
+
+from emulandice.r_helper import run_emulandice
+from emulandice.io import WriteNetCDF
 
 
 # For glaciers, there are 19 regions
@@ -80,36 +80,35 @@ def ExtractProjections(emulandice_file):
     return (ret_data, targyears)
 
 
-def emulandice_project_glaciers(pipeline_id, icesource="Glaciers"):
-    # Load the preprocessed data
-    preprocess_file = "{}_preprocess.pkl".format(pipeline_id)
-    with open(preprocess_file, "rb") as f:
-        preprocess_data = pickle.load(f)
-
+def emulandice_project_glaciers(
+    pipeline_id,
+    preprocess_data: dict,
+    fit_data: dict,
+    output_dir,
+    output_gslr_file: str,
+    output_glacier_dir: str | None = None,
+    icesource="Glaciers",
+):
     preprocess_infile = preprocess_data["infile"]
     baseyear = preprocess_data["baseyear"]
     scenario = preprocess_data["scenario"]
     nsamps = preprocess_data["nsamps"]
-
-    # Load the fit data
-    fit_file = "{}_fit.pkl".format(pipeline_id)
-    with open(fit_file, "rb") as f:
-        fit_data = pickle.load(f)
 
     trend_mean = fit_data["trend_mean"]
     trend_sd = fit_data["trend_sd"]
 
     # Run the module using the FACTS forcing data
 
-    emulandice_dataset = "FACTS_CLIMATE_FORCING.csv"
-    subprocess.run(
-        ["bash", "emulandice_steer.sh", emulandice_dataset, str(nsamps), icesource]
+    emulandice_dataset = preprocess_data["facts_data_file"]
+    run_emulandice(
+        emulandice_dataset=emulandice_dataset,
+        nsamps=nsamps,
+        icesource=icesource,
+        outdir=output_dir,
     )
 
     # Get the output from the emulandice run
-    emulandice_file = os.path.join(
-        os.path.dirname(__file__), "results", "projections_FAIR_FACTS.csv"
-    )
+    emulandice_file = os.path.join(output_dir, "projections_FAIR_FACTS.csv")
     samples, targyears = ExtractProjections(emulandice_file)
 
     # Make sure we get the number of samples we expected
@@ -156,93 +155,40 @@ def emulandice_project_glaciers(pipeline_id, icesource="Glaciers"):
         "baseyear": baseyear,
         "preprocess_infile": preprocess_infile,
     }
-    outfile = open(
-        os.path.join(
-            os.path.dirname(__file__), "{}_projections.pkl".format(pipeline_id)
-        ),
-        "wb",
-    )
-    pickle.dump(output, outfile, protocol=-1)
-    outfile.close()
 
     # Write the global projections to netcdf files
     gic_global_slr = np.sum(samples, axis=0)
     WriteNetCDF(
-        gic_global_slr, None, targyears, baseyear, scenario, nsamps, pipeline_id
+        gic_global_slr,
+        targyears,
+        baseyear,
+        scenario,
+        nsamps,
+        pipeline_id,
+        nc_filename=output_gslr_file,
+        nc_description="Global SLR contribution from glaciers using the emulandice module",
     )
 
-    # output projections for each region as netcdf
-    for i in np.arange(len(samples)):
-        WriteNetCDF(
-            samples[i],
-            "glac{0}".format(i + 1),
-            targyears,
-            baseyear,
-            scenario,
-            nsamps,
-            pipeline_id,
-        )
+    if output_glacier_dir is not None:
+        p = Path(output_glacier_dir)
+        p.mkdir(exist_ok=True)
 
-    # Done
-    return None
+        for i, sample in enumerate(samples):
+            idx = i + 1
+            out_file = p / f"glac{idx}_globalsl.nc"
 
+            WriteNetCDF(
+                sample,
+                targyears,
+                baseyear,
+                scenario,
+                nsamps,
+                pipeline_id,
+                nc_filename=str(out_file),
+                nc_description=f"Global SLR contribution from glaciers (glac{idx}) using the emulandice module",
+            )
 
-def WriteNetCDF(slr, region, targyears, baseyear, scenario, nsamps, pipeline_id):
-    # Write the total global projections to a netcdf file
-    if region is None:
-        nc_filename = os.path.join(
-            os.path.dirname(__file__), "{}_globalsl.nc".format(pipeline_id)
-        )
-        nc_description = (
-            "Global SLR contribution from glaciers using the emulandice module"
-        )
-    else:
-        nc_filename = os.path.join(
-            os.path.dirname(__file__), "{}_{}_globalsl.nc".format(pipeline_id, region)
-        )
-        nc_description = "Global SLR contribution from glaciers ({}) using the emulandice module".format(
-            region
-        )
-    rootgrp = Dataset(nc_filename, "w", format="NETCDF4")
-
-    # Define Dimensions
-    _ = rootgrp.createDimension("years", len(targyears))
-    _ = rootgrp.createDimension("samples", nsamps)
-    _ = rootgrp.createDimension("locations", 1)
-
-    # Populate dimension variables
-    year_var = rootgrp.createVariable("years", "i4", ("years",))
-    samp_var = rootgrp.createVariable("samples", "i8", ("samples",))
-    loc_var = rootgrp.createVariable("locations", "i8", ("locations",))
-    lat_var = rootgrp.createVariable("lat", "f4", ("locations",))
-    lon_var = rootgrp.createVariable("lon", "f4", ("locations",))
-
-    # Create a data variable
-    samps = rootgrp.createVariable(
-        "sea_level_change",
-        "f4",
-        ("samples", "years", "locations"),
-        zlib=True,
-        complevel=4,
-    )
-
-    # Assign attributes
-    rootgrp.description = nc_description
-    rootgrp.history = "Created " + time.ctime(time.time())
-    rootgrp.source = "FACTS: {0}. ".format(pipeline_id)
-    rootgrp.baseyear = baseyear
-    rootgrp.scenario = scenario
-    samps.units = "mm"
-
-    # Put the data into the netcdf variables
-    year_var[:] = targyears
-    samp_var[:] = np.arange(nsamps)
-    samps[:, :, :] = slr[:, :, np.newaxis]
-    lat_var[:] = np.inf
-    lon_var[:] = np.inf
-    loc_var[:] = -1
-
-    return None
+    return output
 
 
 if __name__ == "__main__":
