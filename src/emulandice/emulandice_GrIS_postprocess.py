@@ -86,8 +86,6 @@ def emulandice_postprocess_GrIS(
         },
     )
 
-    return None
-
 
 if __name__ == "__main__":
     # Initialize the command-line argument parser
