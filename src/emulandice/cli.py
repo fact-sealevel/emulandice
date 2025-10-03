@@ -28,7 +28,7 @@ logging.basicConfig(level=logging.INFO)
 @click.option("--debug/--no-debug", default=False, envvar="EMULANDICE_DEBUG")
 def main(debug):
     """
-    The emulandice family of modules wrap around the Edwards et al. (2021) Gaussian process emulators of the ISMIP6 and GlacierMIP2 models.
+    Application projecting sea-level change from ice following the Gaussian process emulators of the ISMIP6 and GlacierMIP2 models described in Edwards et al. (2021).
     """
     if debug:
         logging.root.setLevel(logging.DEBUG)
