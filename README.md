@@ -4,7 +4,7 @@ Application projecting sea-level change from ice following the Gaussian process 
 
 ## Example
 
-This application can run on projected global surface air temperature data. For example, you can use the output `gsat.nc` file from the [the fair model container](https://github.com/facts-org/fair-temperature). Additional input data is also needed.
+This application can run on projected global surface air temperature data. For example, you can use the output `gsat.nc` file from the [the fair model container](https://github.com/fact-sealevel/fair-temperature). Additional input data is also needed.
 
 First, create a new directory and download required input data and prepare for the run, like
 
@@ -26,7 +26,7 @@ Now run the containter, for example with Docker, like
 docker run --rm \
   -v ./data/input:/input/:ro \
   -v ./data/output:/output \
-  ghcr.io/facts-org/emulandice:latest ais \
+  ghcr.io/fact-sealevel/emulandice:latest ais \
   --pipeline-id=1234 \
   --fprint-wais-file="/input/FPRINT/fprint_wais.nc" \
   --fprint-eais-file="/input/FPRINT/fprint_eais.nc" \
@@ -39,7 +39,7 @@ docker run --rm \
 If the run is successful, the output projection will appear in `./data/output`. The `ais` subcommand we used here means we projected changes in the Antarctic ice sheet.
 
 > [!TIP]
-> For this example we use `ghcr.io/facts-org/emulandice:latest`. We do not recommend using `latest` for production runs because it is not reproducible. Instead, use a tag for a specific version of the image or an image's digest hash. You can find tagged image versions and digests [here](https://github.com/facts-org/emulandice/pkgs/container/emulandice).
+> For this example we use `ghcr.io/fact-sealevel/emulandice:latest`. We do not recommend using `latest` for production runs because it is not reproducible. Instead, use a tag for a specific version of the image or an image's digest hash. You can find tagged image versions and digests [here](https://github.com/fact-sealevel/emulandice/pkgs/container/emulandice).
 
 Alternatively, we could project changes from the Greenland ice sheet (`gris`) like
 
@@ -47,7 +47,7 @@ Alternatively, we could project changes from the Greenland ice sheet (`gris`) li
 docker run --rm \
   -v ./data/input:/input/:ro \
   -v ./data/output:/output \
-  ghcr.io/facts-org/emulandice:latest gris \
+  ghcr.io/fact-sealevel/emulandice:latest gris \
   --pipeline-id=1234 \
   --fprint-gis-file="/input/FPRINT/fprint_gis.nc" \
   --input-data-file="/input/gsat.nc" \
@@ -62,7 +62,7 @@ Yet another option is to project changes from glaciers, like
 docker run --rm \
   -v ./data/input:/input/:ro \
   -v ./data/output:/output \
-  ghcr.io/facts-org/emulandice:latest glaciers \
+  ghcr.io/fact-sealevel/emulandice:latest glaciers \
   --pipeline-id=1234 \
   --fprint-glacier-dir="/input/FPRINT" \
   --fprint-map-file="/input/fingerprint_region_map.csv" \
@@ -97,13 +97,13 @@ Commands:
 See this help by running
 
 ```shell
-docker run --rm ghcr.io/facts-org/emulandice:latest --help
+docker run --rm ghcr.io/fact-sealevel/emulandice:latest --help
 ```
 
 or for a specific subcommand, for example `glaciers` like
 
 ```shell
-docker run --rm ghcr.io/facts-org/emulandice:latest glaciers --help
+docker run --rm ghcr.io/fact-sealevel/emulandice:latest glaciers --help
 ```
 
 The various options and configurations can also be set with environment variables prefixed by EMULANDICE_*. For example, set `--chunksize` with `EMULANDICE_CHUNKSIZE`.
@@ -126,8 +126,8 @@ from the repository root.
 
 ## Support
 
-Source code is available online at https://github.com/facts-org/emulandice. This software is open source, available under the MIT license.
+Source code is available online at https://github.com/fact-sealevel/emulandice. This software is open source, available under the MIT license.
 
-Please file issues in the issue tracker at https://github.com/facts-org/emulandice/issues.
+Please file issues in the issue tracker at https://github.com/fact-sealevel/emulandice/issues.
 
 The R package in this repository is derived from Edwards et al. 2021 (https://doi.org/10.1038/s41586-021-03302-y) available at https://github.com/tamsinedwards/emulandice under the public domain.
