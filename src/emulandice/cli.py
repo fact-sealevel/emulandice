@@ -3,6 +3,7 @@ Logic for the CLI.
 """
 
 from pathlib import Path
+import logging
 import tempfile
 
 import click
@@ -19,12 +20,20 @@ from emulandice.emulandice_glaciers_project import emulandice_project_glaciers
 from emulandice.emulandice_glaciers_postprocess import emulandice_postprocess_glaciers
 
 
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
+
+
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
-def main():
+@click.option("--debug/--no-debug", default=False, envvar="EMULANDICE_DEBUG")
+def main(debug):
     """
     The emulandice family of modules wrap around the Edwards et al. (2021) Gaussian process emulators of the ISMIP6 and GlacierMIP2 models.
     """
-    pass
+    if debug:
+        logging.root.setLevel(logging.DEBUG)
+    else:
+        logging.root.setLevel(logging.INFO)
 
 
 @main.command
@@ -150,7 +159,7 @@ def ais(
     """
     Project sealevel rise from Antarctic Ice Sheet (AIS)
     """
-    click.echo("Hello from emulandice AIS")
+    logger.info("Starting emulandice ais")
 
     with tempfile.TemporaryDirectory() as tmpdir:
         tmpdir = Path(tmpdir)
@@ -190,6 +199,8 @@ def ais(
         output_eais_file=output_lslr_eais_file,
         output_wais_file=output_lslr_wais_file,
     )
+
+    logger.info("emulandice ais complete")
 
 
 @main.command
@@ -274,7 +285,7 @@ def gris(
     """
     Project sealevel rise from Greenland Ice Sheet (GrIS)
     """
-    click.echo("Hello from emulandice GrIS")
+    logger.info("Starting emulandice gris")
 
     with tempfile.TemporaryDirectory() as tmpdir:
         tmpdir = Path(tmpdir)
@@ -308,6 +319,8 @@ def gris(
         fprint_gis_file=fprint_gis_file,
         output_lslr_file=output_lslr_file,
     )
+
+    logger.info("emulandice gris complete")
 
 
 @main.command
@@ -401,7 +414,7 @@ def glaciers(
     """
     Project sealevel rise from glaciers
     """
-    click.echo("Hello from emulandice glaciers")
+    logging.info("Starting emulandice glaciers")
 
     with tempfile.TemporaryDirectory() as tmpdir:
         tmpdir = Path(tmpdir)
@@ -437,3 +450,5 @@ def glaciers(
         fprint_glacier_dir=fprint_glacier_dir,
         output_lslr_file=output_lslr_file,
     )
+
+    logging.info("emulandice glaciers complete")

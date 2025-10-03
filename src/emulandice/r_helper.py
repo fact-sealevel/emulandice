@@ -1,7 +1,11 @@
 """Helpers to ease the relationship between R and Python."""
 
+import logging
 import subprocess
 import shlex
+
+
+logger = logging.getLogger(__name__)
 
 
 def run_emulandice(
@@ -32,3 +36,4 @@ def run_emulandice(
         shell=False,
         check=True,
     )
+    logger.debug("R emulandice subprocess complete")
