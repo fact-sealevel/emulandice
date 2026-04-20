@@ -7,7 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- 
+### Fixed
+
+- Update emulandice-ais to write local EAIS output using specified filename instead of formatted name ([PR #5](https://github.com/fact-sealevel/emulandice/pull/5), [@e-marshall](https://github.com/e-marshall))
 
 ## [0.1.0] - 2025-10-03
 
