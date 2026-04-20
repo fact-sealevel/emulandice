@@ -145,7 +145,7 @@ def emulandice_postprocess_AIS(
             attrs=ncvar_attributes,
         )
         eais_out.to_netcdf(
-            "{0}_{1}_localsl.nc".format(pipeline_id, "EAIS"),
+            output_eais_file,
             encoding={
                 "sea_level_change": {
                     "dtype": "f4",
