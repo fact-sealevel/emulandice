@@ -68,7 +68,7 @@ def main(debug):
     "--output-lslr-file",
     envvar="EMULANDICE_OUTPUT_LSLR_FILE",
     help="Path to write output local SLR file.",
-    required=True,
+    required=False,
     type=str,
 )
 @click.option(
@@ -187,18 +187,21 @@ def ais(
             output_wais_file=output_gslr_wais_file,
             output_pen_file=output_gslr_pen_file,
         )
-
-    emulandice_postprocess_AIS(
-        my_data=projected,
-        locationfile=location_file,
-        chunksize=chunksize,
-        pipeline_id=pipeline_id,
-        fprint_wais_file=fprint_wais_file,
-        fprint_eais_file=fprint_eais_file,
-        output_lslr_file=output_lslr_file,
-        output_eais_file=output_lslr_eais_file,
-        output_wais_file=output_lslr_wais_file,
-    )
+    if output_lslr_file is not None:
+        emulandice_postprocess_AIS(
+            my_data=projected,
+            locationfile=location_file,
+            chunksize=chunksize,
+            pipeline_id=pipeline_id,
+            fprint_wais_file=fprint_wais_file,
+            fprint_eais_file=fprint_eais_file,
+            output_lslr_file=output_lslr_file,
+            output_eais_file=output_lslr_eais_file,
+            output_wais_file=output_lslr_wais_file,
+        )
+        logger.info("emulandice ais postprocessing complete")
+    else:
+        logger.info("No output local SLR file specified; skipping postprocessing")
 
     logger.info("emulandice ais complete")
 
@@ -311,14 +314,18 @@ def gris(
             output_gslr_file=output_gslr_file,
         )
 
-    emulandice_postprocess_GrIS(
-        my_data=projected,
-        locationfile=location_file,
-        chunksize=chunksize,
-        pipeline_id=pipeline_id,
-        fprint_gis_file=fprint_gis_file,
-        output_lslr_file=output_lslr_file,
-    )
+    if output_lslr_file is not None:
+        emulandice_postprocess_GrIS(
+            my_data=projected,
+            locationfile=location_file,
+            chunksize=chunksize,
+            pipeline_id=pipeline_id,
+            fprint_gis_file=fprint_gis_file,
+            output_lslr_file=output_lslr_file,
+        )
+        logger.info("emulandice gris postprocessing complete")
+    else:
+        logger.info("No output local SLR file specified; skipping postprocessing")
 
     logger.info("emulandice gris complete")
 
@@ -440,15 +447,18 @@ def glaciers(
             output_gslr_file=output_gslr_file,
             output_glacier_dir=output_glacier_dir,
         )
-
-    emulandice_postprocess_glaciers(
-        my_data=projected,
-        locationfile=location_file,
-        chunksize=chunksize,
-        pipeline_id=pipeline_id,
-        fprint_map_file=fprint_map_file,
-        fprint_glacier_dir=fprint_glacier_dir,
-        output_lslr_file=output_lslr_file,
-    )
+    if output_lslr_file is not None:
+        emulandice_postprocess_glaciers(
+            my_data=projected,
+            locationfile=location_file,
+            chunksize=chunksize,
+            pipeline_id=pipeline_id,
+            fprint_map_file=fprint_map_file,
+            fprint_glacier_dir=fprint_glacier_dir,
+            output_lslr_file=output_lslr_file,
+        )
+        logging.info("emulandice glaciers postprocessing complete")
+    else:
+        logging.info("No output local SLR file specified; skipping postprocessing")
 
     logging.info("emulandice glaciers complete")
