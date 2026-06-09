@@ -73,6 +73,8 @@ docker run --rm \
   --output-glacier-dir="/output/glacier"
 ```
 
+Generate global mean sea-level projections only by omitting `output-lslr-file` argument. 
+
 ## Features
 
 Several options and configurations are available when running the container.
