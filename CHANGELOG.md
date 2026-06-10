@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- Added option to run global projections only ([PR #8](https://github.com/fact-sealevel/emulandice/pull/8), [@e-marshall](https://github.com/e-marshall))
+
 ## [0.1.1]
 
 ### Fixed
@@ -15,6 +21,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Initial release.
 
-
-[0.1.1]: https://github.com/fact-sealevel/emulandice/releases/tag/v0.1.1
+[Unreleased]: https://github.com/fact-sealevel/emulandice/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/fact-sealevel/emulandice/compare/v0.1.0...v0.1.0
 [0.1.0]: https://github.com/fact-sealevel/emulandice/releases/tag/v0.1.0
